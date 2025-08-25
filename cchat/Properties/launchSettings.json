@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "cchat": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "containerRunArguments": "--rm -p 5000:5000"
+    }
+  }
+}
