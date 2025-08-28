@@ -32,6 +32,7 @@ namespace cchat
             {
                 UserConnection connection = await UserConnection.CreateAsync(ctx);
                 connections.Add(connection.Id, connection);
+                connection.Disposed += OnConnectionDisposed;
 
                 return connection;
             }
@@ -49,9 +50,15 @@ namespace cchat
 
         public async Task<bool> RemoveConnection(Guid guid)
         {
-            UserConnection connection = connections[guid];
+            if (!connections.TryGetValue(guid, out UserConnection? connection)) return false;
             await connection.DisposeAsync();
-            return connections.Remove(guid);
+            return true;
+        }
+
+        private void OnConnectionDisposed(UserConnection connection)
+        {
+            connections.Remove(connection.Id);
+            connection.Disposed -= OnConnectionDisposed;
         }
 
         private byte[] EncodeUserMessage(UserConnection connection, string message)

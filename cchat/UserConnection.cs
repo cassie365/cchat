@@ -9,6 +9,9 @@ namespace cchat
         public Guid Id { get; } = Guid.NewGuid();
         public WebSocket? Socket { get; private set; }
         public string Username { get; }
+
+        public event Action<UserConnection>? Disposed;
+
         public UserConnection(HttpContext ctx)
         {
             _ctx = ctx;
@@ -42,6 +45,10 @@ namespace cchat
             }
 
             Socket.Dispose();
+
+            // Notify that his has been disposed
+            // to perform cleanup operations outside of this class
+            Disposed?.Invoke(this);
         }
 
         public async Task<string?> RecieveMessageAsync()

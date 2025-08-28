@@ -28,14 +28,15 @@ app.Map("/", async (HttpContext ctx) =>
         return;
     }
 
-    while (connection.IsOpen())
+    await using (connection)
     {
-        string? message = await connection.RecieveMessageAsync();
-        if (message is null) continue;
-        cm.SendToAllAsync(connection, message);
+        while (connection.IsOpen())
+        {
+            string? message = await connection.RecieveMessageAsync();
+            if (message is null) continue;
+            cm.SendToAllAsync(connection, message);
+        }
     }
-
-    await cm.RemoveConnection(connection.Id);
 
 });
 
