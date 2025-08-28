@@ -3,7 +3,7 @@ using System.Text;
 
 namespace cchat
 {
-    public class UserConnection
+    public sealed class UserConnection : IAsyncDisposable
     {
         private readonly HttpContext _ctx;
         public Guid Id { get; } = Guid.NewGuid();
@@ -28,19 +28,20 @@ namespace cchat
         }
 
 
-        public async void CloseAsync()
+        public async ValueTask DisposeAsync()
         {
             if (Socket is null) return;
+            try
+            {
+                string message = $"Connection {Id} closed by server.";
+                await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, message, CancellationToken.None);
+            }
+            catch (Exception e) 
+            {
+                    Console.WriteLine($"Error when disposing UserConnection: {e.Message}");
+            }
 
-            string message = $"Connection {Id} closed by server.";
-            await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, message, _ctx.RequestAborted);
-        }
-
-        public async void CloseAsync(string message)
-        {
-            if (Socket is null) return;
-
-            await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, message, _ctx.RequestAborted);
+            Socket.Dispose();
         }
 
         public async Task<string?> RecieveMessageAsync()
@@ -52,7 +53,7 @@ namespace cchat
 
             if (result.MessageType == WebSocketMessageType.Close)
             {
-                CloseAsync("Disconnect by Client");
+                Console.WriteLine("Client requested to terminate connection.");
                 return null;
             }
 

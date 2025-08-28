@@ -35,7 +35,7 @@ app.Map("/", async (HttpContext ctx) =>
         cm.SendToAllAsync(connection, message);
     }
 
-    cm.RemoveConnection(connection.Id);
+    await cm.RemoveConnection(connection.Id);
 
 });
 

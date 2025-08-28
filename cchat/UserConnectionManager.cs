@@ -47,10 +47,10 @@ namespace cchat
             return connections[connectionId];
         }
 
-        public bool RemoveConnection(Guid guid)
+        public async Task<bool> RemoveConnection(Guid guid)
         {
             UserConnection connection = connections[guid];
-            connection.CloseAsync();
+            await connection.DisposeAsync();
             return connections.Remove(guid);
         }
 
