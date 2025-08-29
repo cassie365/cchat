@@ -51,7 +51,7 @@ namespace cchat
             Disposed?.Invoke(this);
         }
 
-        public async Task<string?> RecieveMessageAsync()
+        public async Task<string?> ReceiveMessageAsync()
         {
             if (Socket is null) return null;
 

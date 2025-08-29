@@ -32,7 +32,7 @@ app.Map("/", async (HttpContext ctx) =>
     {
         while (connection.IsOpen())
         {
-            string? message = await connection.RecieveMessageAsync();
+            string? message = await connection.ReceiveMessageAsync();
             if (message is null) continue;
             cm.SendToAllAsync(connection, message);
         }
