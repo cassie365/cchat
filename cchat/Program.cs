@@ -22,7 +22,7 @@ app.Map("/", async (HttpContext ctx) =>
 
     UserConnection? connection = await cm.CreateUserConnectionAsync(ctx);
 
-    if (connection == null)
+    if (connection is null)
     {
         ctx.Response.StatusCode = 500;
         return;
