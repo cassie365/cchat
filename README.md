@@ -27,7 +27,7 @@ Server behavior:
 
 ## Test with Postman (WebSocket)
 
-1. Open Postman and create a new WebSocket Request.
+1. Open Postman and [create a new WebSocket Request.](https://learning.postman.com/docs/sending-requests/websocket/create-a-websocket-request/)
 2. In the URL box, enter the endpoint with a username, e.g.:
    - `ws://localhost:5000/?username=alice` (HTTP)
 3. Click Connect.
@@ -42,13 +42,13 @@ Notes:
 - Only text messages are processed; other frame types are ignored.
 - The server sends keep-alive pings every 30 seconds.
 
-## Why this is insecure (by design)
+## Why this is insecure
 This project was a way for me to learn WebSocket and play around with the concept.
 
 This project is NOT ready to ship in its current state:
 - No authentication or authorization. Anyone knowing the URL can connect and spoof `username`.
 - No transport security when using `ws://` (plaintext). Use `wss://` + a valid certificate in real deployments.
-- No input validation, rate limiting, or message size caps beyond a rolling buffer; large or frequent messages could impact memory/CPU.
+- No input validation or rate limiting; frequent messages could impact memory/CPU.
 - No origin checks (no CSRF/CORS style restrictions for WebSocket origins).
 - Broadcast trust: messages are forwarded as-is to every client.
 - Concurrency and error handling are minimal. Exceptions may be lost and concurrent mutations could race.
