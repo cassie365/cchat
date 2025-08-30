@@ -7,23 +7,43 @@ namespace cchat
         private readonly Dictionary<Guid, UserConnection> connections = [];
 
 
-        public void SendToAllAsync(UserConnection connection, string message)
+        public void BulkSend(UserConnection connection, string message)
         {
+            List<Task> messages = [];
+            var recipientCount = 0;
+            var failureCount = 0;
             foreach (UserConnection uc in connections.Values)
             {
-                SendToUserAsync(connection, uc, message);
+                try
+                {
+                    messages.Add(SendToUserAsync(connection, uc, message).ContinueWith(sentTask =>
+                    {
+                        return sentTask.Result ? recipientCount++ : failureCount++;
+                    }, TaskContinuationOptions.OnlyOnRanToCompletion));
+
+                } catch (Exception ex) {
+
+                    Console.WriteLine($"Error during Bulk Send: {ex.Message}");
+
+                }
+                
             }
+
+            Task.WhenAll(messages).ContinueWith(task =>
+            {
+                Console.WriteLine($"Bulk message succeeded. Sent to {recipientCount} recipients and had {failureCount} failures");
+            });
         }
 
-        public void SendToUserAsync(UserConnection senderConnection, Guid recipientId, string message)
+        public async Task<bool> SendToUserAsync(UserConnection senderConnection, Guid recipientId, string message)
         {
             UserConnection recipient = connections[recipientId];
-            SendToUserAsync(senderConnection, recipient, message);
+            return await SendToUserAsync(senderConnection, recipient, message);
         }
 
-        private async void SendToUserAsync(UserConnection senderConnection, UserConnection recipient, string message)
+        private async Task<bool> SendToUserAsync(UserConnection senderConnection, UserConnection recipient, string message)
         {
-            await recipient.SendMessageAsync(EncodeUserMessage(senderConnection, message));
+            return await recipient.SendMessageAsync(EncodeUserMessage(senderConnection, message));
         }
 
         public async Task<UserConnection?> CreateUserConnectionAsync(HttpContext ctx)

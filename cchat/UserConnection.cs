@@ -6,6 +6,7 @@ namespace cchat
     public sealed class UserConnection : IAsyncDisposable
     {
         private readonly HttpContext _ctx;
+        private readonly SemaphoreSlim _sendLock = new(1, 1);
         public Guid Id { get; } = Guid.NewGuid();
         public WebSocket? Socket { get; private set; }
         public string Username { get; }
@@ -110,8 +111,12 @@ namespace cchat
         {
             if (Socket is null || !IsOpen()) return false;
 
+            // Websocket supports only 1 send at a time
+            await _sendLock.WaitAsync(_ctx.RequestAborted);
+
             try
             {
+                if (!IsOpen()) return false;
                 await Socket.SendAsync(message, WebSocketMessageType.Text, endOfMessage: true, _ctx.RequestAborted);
                 return true;
             }
@@ -119,6 +124,9 @@ namespace cchat
             {
                 Console.WriteLine($"Failed to send message to {Id}: {ex.Message}");
                 return false;
+            } finally
+            {
+                _sendLock.Release();
             }
         }
 

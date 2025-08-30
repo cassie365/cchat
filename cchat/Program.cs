@@ -34,7 +34,7 @@ app.Map("/", async (HttpContext ctx) =>
         {
             string? message = await connection.ReceiveMessageAsync();
             if (message is null) continue;
-            cm.SendToAllAsync(connection, message);
+            cm.BulkSend(connection, message);
         }
     }
 
