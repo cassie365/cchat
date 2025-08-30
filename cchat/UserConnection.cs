@@ -41,7 +41,7 @@ namespace cchat
             {
                 if (Socket.State is WebSocketState.Open or WebSocketState.CloseReceived or WebSocketState.CloseSent)
                 {
-                    string message = CloseMessage ?? $"Websocket Connection {Id} closed by server.";
+                    var message = CloseMessage ?? $"Websocket Connection {Id} closed by server.";
                     WebSocketCloseStatus closeStatus = CloseStatus ?? WebSocketCloseStatus.NormalClosure;
                     await Socket.CloseAsync(closeStatus, message, CancellationToken.None);
                 }
@@ -126,8 +126,8 @@ namespace cchat
         {
             if (Socket is null) return false;
 
-            bool socketIsOpen = Socket.State == WebSocketState.Open;
-            bool requestCancellationRequested = _ctx.RequestAborted.IsCancellationRequested;
+            var socketIsOpen = Socket.State == WebSocketState.Open;
+            var requestCancellationRequested = _ctx.RequestAborted.IsCancellationRequested;
 
             return socketIsOpen && !requestCancellationRequested && !IsClosing;
         }
