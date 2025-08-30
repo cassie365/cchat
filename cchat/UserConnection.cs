@@ -85,7 +85,7 @@ namespace cchat
                     return null;
                 }
 
-                if (ms.Length + result.Count < MaxMessageBytes)
+                if (ms.Length + result.Count > MaxMessageBytes)
                 {
                     Console.WriteLine($"Message from {Id} exceeded limit ({MaxMessageBytes} bytes). Closing socket.");
                     MarkClosed(WebSocketCloseStatus.MessageTooBig, $"Message exceeded limit ({MaxMessageBytes} bytes)");
