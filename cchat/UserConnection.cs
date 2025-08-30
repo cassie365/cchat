@@ -11,6 +11,9 @@ namespace cchat
         public string Username { get; }
 
         public event Action<UserConnection>? Disposed;
+        public bool IsClosing { get; private set; } = false;
+        private string? CloseMessage { get; set; }
+        private WebSocketCloseStatus? CloseStatus { get; set; }
 
         public UserConnection(HttpContext ctx)
         {
@@ -36,8 +39,12 @@ namespace cchat
             if (Socket is null) return;
             try
             {
-                string message = $"Connection {Id} closed by server.";
-                await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, message, CancellationToken.None);
+                if (Socket.State is WebSocketState.Open or WebSocketState.CloseReceived or WebSocketState.CloseSent)
+                {
+                    string message = CloseMessage ?? $"Websocket Connection {Id} closed by server.";
+                    WebSocketCloseStatus closeStatus = CloseStatus ?? WebSocketCloseStatus.NormalClosure;
+                    await Socket.CloseAsync(closeStatus, message, CancellationToken.None);
+                }
             }
             catch (Exception e) 
             {
@@ -55,29 +62,48 @@ namespace cchat
         {
             if (Socket is null) return null;
 
+            const int MaxMessageBytes = 1 * 1024 * 1024;
+
             var buffer = new byte[8 * 1024];
-            var result = await Socket.ReceiveAsync(buffer, _ctx.RequestAborted);
 
-            if (result.MessageType == WebSocketMessageType.Close)
-            {
-                Console.WriteLine("Client requested to terminate connection.");
-                return null;
-            }
-
-            if (result.MessageType != WebSocketMessageType.Text)
-            {
-                return null;
-            }
-
-            var ms = new MemoryStream();
-            ms.Write(buffer.AsSpan(0, result.Count));
-            while (!result.EndOfMessage)
+            var ms = new MemoryStream(capacity: 8 * 1024);
+            WebSocketReceiveResult result;
+            do
             {
                 result = await Socket.ReceiveAsync(buffer, _ctx.RequestAborted);
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    Console.WriteLine("Client requested to terminate connection.");
+                    MarkClosed(WebSocketCloseStatus.NormalClosure, "Client requested to terminate connection.");
+                    return null;
+                }
+
+                if (result.MessageType != WebSocketMessageType.Text)
+                {
+                    // Ignore any binary frames for now
+                    return null;
+                }
+
+                if (ms.Length + result.Count < MaxMessageBytes)
+                {
+                    Console.WriteLine($"Message from {Id} exceeded limit ({MaxMessageBytes} bytes). Closing socket.");
+                    MarkClosed(WebSocketCloseStatus.MessageTooBig, $"Message exceeded limit ({MaxMessageBytes} bytes)");
+                    return null;
+                }
+
                 ms.Write(buffer.AsSpan(0, result.Count));
             }
+            while (!result.EndOfMessage);
 
             return Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        private void MarkClosed(WebSocketCloseStatus closeStatus, string? closeMessage = null)
+        {
+            CloseMessage = closeMessage;
+            CloseStatus = closeStatus;
+            IsClosing = true;
         }
 
         public async Task<bool> SendMessageAsync(byte[] message)
@@ -103,7 +129,7 @@ namespace cchat
             bool socketIsOpen = Socket.State == WebSocketState.Open;
             bool requestCancellationRequested = _ctx.RequestAborted.IsCancellationRequested;
 
-            return socketIsOpen && !requestCancellationRequested;
+            return socketIsOpen && !requestCancellationRequested && !IsClosing;
         }
 
     }
